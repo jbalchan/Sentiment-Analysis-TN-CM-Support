@@ -12,32 +12,30 @@ access_token <- "466566632-1y63l7WVwsOTOcevkAFexWqqJ6lXHgpHz8GKbHTB"
 access_token_secret <- "spMYZGwCk69iCEuO7LSLE5l4qSNFgFqThUuiU5thZScdk"
 setup_twitter_oauth(customer_key, customer_secret, access_token, access_token_secret)
 
+#tweets are searched from 5th feb 2017 - the day ops resigned from CM post.
+tweets_ops <- searchTwitter('ops OR OPaneerSelvam', n=200,since="2017-02-05") #O Paneer Selvam is also called ops
+tweets_sasikala <- searchTwitter('sasikala', n=200,since="2017-02-05")
+tweets_palaniswami <- searchTwitter('Palaniswami OR Palaniswamy', n=200,since="2017-02-05")
 
-tweets_ops <- searchTwitter('ops', n=60,since="2017-02-05") #5th feb 2017
-tweets_sasikala <- searchTwitter('sasikala', n=60,since="2017-02-05")
-tweets_palaniswami <- searchTwitter('Palaniswami OR Palaniswamy', n=60,since="2017-02-05")
-
+#splitting into list, getting text and returning array
 feed_ops <- laply(tweets_ops, function(t) t$getText())
-#feed_sanders <- laply(tweets_sanders, function(t) t$getText())
 feed_sasikala <- laply(tweets_sasikala, function(t) t$getText())
 feed_Palaniswami <- laply(tweets_palaniswami, function(t) t$getText())
 
-#Source of text files : https://github.com/williamgunn/SciSentiment
-goood <- scan('~/R/positive-words.txt', what='character', comment.char=';')
-baaad <- scan('~/R/negative-words.txt',what='character', comment.char=';')
+
+good <- scan('~/R/positive-words.txt', what='character', comment.char=';')
+bad <- scan('~/R/negative-words.txt',what='character', comment.char=';')
 
 
-bad_text <- c(baaad, 'wtf', 'wait', 'waiting','epicfail', 'slow')
-good_text <- c(goood, 'upgrade', ':)', '#iVoted', 'voted')
+bad_text <- c(bad, 'wtf', 'wth')
+good_text <- c(good, 'voted')
 
 score.sentiment <- function(sentences, good_text, bad_text, .progress='none')
 {
   require(plyr)
   require(stringr)
-  # we got a vector of sentences. plyr will handle a list
-  # or a vector as an "l" for us
-  # we want a simple array of scores back, so we use
-  # "l" + "a" + "ply" = "laply":
+  
+  #converting into array of scores
   scores = laply(sentences, function(sentence, good_text, bad_text) {
     
     # clean up sentences with R's regex-driven global substitute, gsub():
@@ -48,9 +46,9 @@ score.sentiment <- function(sentences, good_text, bad_text, .progress='none')
     sentence <- iconv(sentence, 'UTF-8', 'ASCII')
     sentence = tolower(sentence)
     
-    # split into words. str_split is in the stringr package
+    # split the sentence into words. 
     word.list = str_split(sentence, '\\s+')
-    # sometimes a list() is one level of hierarchy too much
+    # Unlist a list of vectors into a single vector
     words = unlist(word.list)
     
     # compare our words to the dictionaries of positive & negative terms
@@ -58,43 +56,48 @@ score.sentiment <- function(sentences, good_text, bad_text, .progress='none')
     neg.matches = match(words, bad_text)
     
     # match() returns the position of the matched term or NA
-    # we just want a TRUE/FALSE:
+    # selecting the TRUE/FALSE values only :
     pos.matches = !is.na(pos.matches)
     neg.matches = !is.na(neg.matches)
     
-    # and conveniently enough, TRUE/FALSE will be treated as 1/0 by sum():
+    # TRUE/FALSE will be treated as 1/0 by sum():
     score = sum(pos.matches) - sum(neg.matches)
     
     return(score)
   }, good_text, bad_text, .progress=.progress )
   
+  # data frame containing score for every sentence
   scores.df = data.frame(score=scores, text=sentences)
   return(scores.df)
 }
 
-# Retreive scores and add candidate name.
+# Retreive scores and add person's name.
 ops <- score.sentiment(feed_ops, good_text, bad_text, .progress='text')
 ops$name <- 'o paneer selvam'
 sasikala <- score.sentiment(feed_sasikala, good_text, bad_text, .progress='text')
 sasikala$name <- 'sasikala'
 Palaniswami <- score.sentiment(feed_Palaniswami, good_text, bad_text, .progress='text')
 Palaniswami$name <- 'Edappadi k Palaniswami'
+
 # Merge into one dataframe for plotting
 plotdat <- rbind(ops, sasikala,Palaniswami)
+
 # Cut the text, just gets in the way
 plotdat <- plotdat[c("name", "score")]
+
 # Remove neutral values of 0
 plotdat <- plotdat[!plotdat$score == 0, ]
+
 # Remove anything less than -3 or greater than 3
 plotdat <- plotdat[!plotdat$score > 3, ]
 plotdat <- plotdat[!plotdat$score < (-3), ]
 
-# Nice little quick plot
+# little quick plot
 qplot(factor(score), data=plotdat, geom="bar", 
       fill=factor(name),
       xlab = "Sentiment Score")
 
-# Or get funky with ggplot2 + Plotly
+# using ggplot2 and Plotly
 ep <- plotdat %>%
   ggplot(aes(x = score, fill = name)) +
   geom_histogram(binwidth = 1) +
