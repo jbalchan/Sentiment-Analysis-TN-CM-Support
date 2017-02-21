@@ -110,3 +110,25 @@ theme(axis.title.y = element_text(face="bold", colour="#000000", size=10),
       axis.title.x = element_text(face="bold", colour="#000000", size=8),
       axis.text.x = element_text(angle=16, vjust=0, size=8))
 ggplotly(ep)
+
+#creating a word cloud for palaniswami
+# taking text data  
+bag <- feed_Palaniswami
+#converting text into corpus 
+bag <- Corpus(VectorSource(bag))
+# converting all characters into lowercase
+bag <- tm_map(bag, tolower)
+
+bag <- tm_map(bag, PlainTextDocument)
+# removing all punctuations
+bag <- tm_map(bag, removePunctuation)
+# removing stopwords
+bag <- tm_map(bag, removeWords, c("jayalalitha", stopwords("english")))
+# removing whitespaces
+bag <- tm_map(bag, stripWhitespace)
+
+bag <- tm_map(bag, stemDocument)
+# using wordcloud function
+wordcloud(bag, min.freq = 10,max.words=1500, rot.per=0.15, colors=brewer.pal(7, "Dark2"), scale = c(4.8,0.4))
+
+  
