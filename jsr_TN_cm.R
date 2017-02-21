@@ -6,27 +6,29 @@ library(stringr)
 library(ggplot2)
 library(plotly)
 
+# the following 4 are supplied by twitter
 customer_key <- "udwLTM7gchrQYMQcW15wzj3wj"
 customer_secret <- "cK5xlJhQ3rf2Vaix1uCOpg8LJcozmMIQM8g16JNvO2AtDqB0Ed"
 access_token <- "466566632-1y63l7WVwsOTOcevkAFexWqqJ6lXHgpHz8GKbHTB"
 access_token_secret <- "spMYZGwCk69iCEuO7LSLE5l4qSNFgFqThUuiU5thZScdk"
+# This function wraps the OAuth authentication handshake functions from the httr package for a twitteR session
 setup_twitter_oauth(customer_key, customer_secret, access_token, access_token_secret)
 
 #tweets are searched from 5th feb 2017 - the day ops resigned from CM post.
-tweets_ops <- searchTwitter('ops OR OPaneerSelvam', n=200,since="2017-02-05") #O Paneer Selvam is also called ops
-tweets_sasikala <- searchTwitter('sasikala', n=200,since="2017-02-05")
-tweets_palaniswami <- searchTwitter('Palaniswami OR Palaniswamy', n=200,since="2017-02-05")
+tweets_ops <- searchTwitter('ops OR OPaneerSelvam', n=500,since="2017-02-05") #O Paneer Selvam is also called ops
+tweets_sasikala <- searchTwitter('sasikala', n=500,since="2017-02-05")
+tweets_palaniswami <- searchTwitter('Palaniswami OR Palaniswamy', n=500,since="2017-02-05") #searches for both spellings
 
 #splitting into list, getting text and returning array
 feed_ops <- laply(tweets_ops, function(t) t$getText())
 feed_sasikala <- laply(tweets_sasikala, function(t) t$getText())
 feed_Palaniswami <- laply(tweets_palaniswami, function(t) t$getText())
 
-
+# reads data from files as strings
 good <- scan('~/R/positive-words.txt', what='character', comment.char=';')
 bad <- scan('~/R/negative-words.txt',what='character', comment.char=';')
 
-
+#combines few more words as bad or good
 bad_text <- c(bad, 'wtf', 'wth')
 good_text <- c(good, 'voted')
 
@@ -79,27 +81,27 @@ sasikala$name <- 'sasikala'
 Palaniswami <- score.sentiment(feed_Palaniswami, good_text, bad_text, .progress='text')
 Palaniswami$name <- 'Edappadi k Palaniswami'
 
-# Merge into one dataframe for plotting
-plotdat <- rbind(ops, sasikala,Palaniswami)
+# Merge (by rows) into one dataframe for plotting
+plotdataa <- rbind(ops, sasikala,Palaniswami)
 
-# Cut the text, just gets in the way
-plotdat <- plotdat[c("name", "score")]
+# Cutting text and score
+plotdataa <- plotdataa[c("name", "score")]
 
 # Remove neutral values of 0
-plotdat <- plotdat[!plotdat$score == 0, ]
+plotdataa <- plotdataa[!plotdataa$score == 0, ]
 
 # Remove anything less than -3 or greater than 3
-plotdat <- plotdat[!plotdat$score > 3, ]
-plotdat <- plotdat[!plotdat$score < (-3), ]
+plotdataa <- plotdataa[!plotdataa$score > 3, ]
+plotdataa <- plotdataa[!plotdataa$score < (-3), ]
 
 # little quick plot
-qplot(factor(score), data=plotdat, geom="bar", 
+qplot(factor(score), data=plotdataa, geom="bar", 
       fill=factor(name),
       xlab = "Sentiment Score")
 
 # using ggplot2 and Plotly
-ep <- plotdat %>%
-  ggplot(aes(x = score, fill = name)) +
+properplot <- plotdataa %>%   #dplyr provides the %>% operator. x %>% f(y) turns into f(x, y) so you can use it to rewrite multiple operations that you can read left-to-right, top-to-bottom
+  ggplot(aes(x = score, fill = name)) +  #aes creates a list of unevaluated expressions
   geom_histogram(binwidth = 1) +
   scale_fill_manual(values = c("#0067F7", "#F70000","#66CC99")) +
   theme_classic(base_size = 12) +
@@ -109,7 +111,7 @@ ep <- plotdat %>%
 theme(axis.title.y = element_text(face="bold", colour="#000000", size=10),
       axis.title.x = element_text(face="bold", colour="#000000", size=8),
       axis.text.x = element_text(angle=16, vjust=0, size=8))
-ggplotly(ep)
+ggplotly(properplot)
 
 #creating a word cloud for palaniswami
 # taking text data  
