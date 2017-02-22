@@ -31,3 +31,7 @@
 11.	plyr
 12.	plotly
 13.	RColorBrewer
+
+**About :**
+
+After honourable former chief minister Jayalalitha passed away, Mr.O Paneer Selvam became the CM of TamilNadu. On february 5,2017 he resigned his post and Mrs.Sasikala Natarajan became CM. But as she was convicted on february 14 2017, Mr.Edappadi K Palaniswami has become the new CM of TN. This project does Sentiment Analysis of who the people of TN support. 
